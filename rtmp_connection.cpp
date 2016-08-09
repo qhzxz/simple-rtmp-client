@@ -172,7 +172,6 @@ void RtmpConnection::handleRxPacketLoop() {
                                   size);
                     sessionInfo->setAcknowledgmentWindowSize(size);
                     // Set socket option
-                    shutdown();
                 }
                     break;
                 case SET_PEER_BANDWIDTH: {

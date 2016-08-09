@@ -13,6 +13,10 @@ int main() {
     if (ret!=RESULT_SUCCESS) {
         RTMP_LOG_INFO("connect fail");
     }
+    ret = connection.publish("live");
+    if (ret!=RESULT_SUCCESS) {
+        RTMP_LOG_INFO("publish fail");
+    }
     while (true) {}
     return 0;
 }
