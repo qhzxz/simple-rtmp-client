@@ -419,7 +419,7 @@ public:
 
 class WindowAckSize : public RtmpPacket {
 private :
-    int acknowledgementWindowSize;
+    int acknowledgementWindowSize = 0;
 
 public:
     WindowAckSize(const RtmpPacketHeader &header);
@@ -442,7 +442,7 @@ public:
 
 class SetPeerBandwidth : public RtmpPacket {
 private :
-    int acknowledgementWindowSize;
+    int acknowledgementWindowSize = 0;
     LimitType limitType;
 public:
     SetPeerBandwidth(const RtmpPacketHeader &header);
@@ -468,8 +468,6 @@ public:
 class ContentData : public RtmpPacket {
 protected:
     byte *data;
-    int size;
-
 public:
     ContentData(const RtmpPacketHeader &header);
 
@@ -499,7 +497,7 @@ class Video : public ContentData {
 public:
     Video(const RtmpPacketHeader &header);
 
-    Video() ;
+    Video();
 };
 
 

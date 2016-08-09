@@ -296,7 +296,6 @@ ContentData::ContentData(const RtmpPacketHeader &header) : RtmpPacket(header) {
 }
 
 void ContentData::setData(byte *data, int size) {
-    this->size = size;
     if (NULL != this->data) {
         delete[] this->data;
     }
@@ -316,16 +315,18 @@ int ContentData::readBody(RtmpStream *stream) {
     if (NULL != data) {
         delete[]data;
     }
-    data = new byte[size];
-    stream->read_bytes(data, size);
+    int length = getHeader().getPacketLength();
+    data = new byte[length];
+    stream->read_bytes(data, length);
 }
 
 int ContentData::writeBody(RtmpStream *stream) {
-    stream->write_bytes(data, size);
+    int length = getHeader().getPacketLength();
+    stream->write_bytes(data, length);
 }
 
 int ContentData::getSize() {
-    return size;
+    return getHeader().getPacketLength();
 }
 
 Audio::Audio(const RtmpPacketHeader &header) : ContentData(header) {}

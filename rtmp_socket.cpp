@@ -14,8 +14,6 @@ RtmpSocket::RtmpSocket(std::string ip, int port) {
     s_in->sin_port = htons(port);
     s_in->sin_addr.s_addr = inet_addr(ip.c_str());
     s_fd = socket(AF_INET, SOCK_STREAM, 0);
-    setReadTimeOut(1000);
-    setWriteTimeOut(1000);
 }
 
 
@@ -42,7 +40,7 @@ int RtmpSocket::setReadTimeOut(int time) {
 
 int RtmpSocket::setSocketSendBufferSize(int size) {
     int ret = RESULT_SUCCESS;
-    int temp = ::setsockopt(s_fd, SOL_SOCKET, SO_SNDBUF, (const char *) &size, sizeof(int));
+    int temp = ::setsockopt(s_fd, SOL_SOCKET, SO_SNDBUF, (char *) &size, sizeof(int));
     if (temp == -1) {
         return RESULT_SET_SOCKET_SEND_BUFFER_SIZE_FAIL;
     }
@@ -121,6 +119,15 @@ int RtmpSocket::read_full_bytes(byte *data, int size, size_t *nread) {
 }
 
 
+int RtmpSocket::shutdownSocket() {
+    int ret = RESULT_SUCCESS;
+    int temp = shutdown(s_fd,SHUT_RDWR);
+    if (temp < 0) {
+        return RESULT_SOCKET_CLOSE_FAIL;
+    }
+    return ret;
+};
+
 int RtmpSocket::closeSocket() {
     int ret = RESULT_SUCCESS;
     int temp = close(s_fd);
@@ -128,8 +135,7 @@ int RtmpSocket::closeSocket() {
         return RESULT_SOCKET_CLOSE_FAIL;
     }
     return ret;
-};
-
+}
 
 RtmpSocket::~RtmpSocket() {
     delete s_in;

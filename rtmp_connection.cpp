@@ -172,23 +172,26 @@ void RtmpConnection::handleRxPacketLoop() {
                                   size);
                     sessionInfo->setAcknowledgmentWindowSize(size);
                     // Set socket option
-                    ret = rtmpSocket->setSocketSendBufferSize(size);
-                    if (ret != RESULT_SUCCESS) {
-                        RTMP_LOG_INFO("handle read error,ret:{0:d}", ret);
-                        shutdown();
-                    }
+                    shutdown();
                 }
                     break;
                 case SET_PEER_BANDWIDTH: {
-                    int acknowledgementWindowsize = sessionInfo->getAcknowledgementWindowSize();
-                    ChunkStreamInfo *chunkStreamInfo = sessionInfo->getChunkStreamInfo(RTMP_CONTROL_CHANNEL);
-                    RTMP_LOG_INFO("handleRxPacketLoop(): Send acknowledgement window size: {0:d}",
-                                  acknowledgementWindowsize);
-                    bool canReuseChuckHeader = chunkStreamInfo->canReusePrevHeaderTx(WINDOW_ACKNOWLEDGEMENT_SIZE);
-                    WindowAckSize *ackSize = new WindowAckSize(acknowledgementWindowsize,
-                                                               canReuseChuckHeader ? TYPE_2_RELATIVE_TIMESTAMP_ONLY
-                                                                                   : TYPE_0_FULL);
-                    rtmpWriteThread->send(ackSize);
+                    SetPeerBandwidth *setPeerBandwidth = dynamic_cast<SetPeerBandwidth *>(packet);
+                    if (NULL != setPeerBandwidth) {
+                        int acknowledgementWindowsize = sessionInfo->getAcknowledgementWindowSize();
+                        RTMP_LOG_INFO("handleRxPacketLoop(): Send acknowledgement window size: {0:d}",
+                                      acknowledgementWindowsize);
+                        if (acknowledgementWindowsize != setPeerBandwidth->getAcknowledgementWindowSize()) {
+                            ChunkStreamInfo *chunkStreamInfo = sessionInfo->getChunkStreamInfo(RTMP_CONTROL_CHANNEL);
+                            bool canReuseChuckHeader = chunkStreamInfo->canReusePrevHeaderTx(
+                                    WINDOW_ACKNOWLEDGEMENT_SIZE);
+                            WindowAckSize *ackSize = new WindowAckSize(acknowledgementWindowsize,
+                                                                       canReuseChuckHeader
+                                                                       ? TYPE_2_RELATIVE_TIMESTAMP_ONLY
+                                                                       : TYPE_0_FULL);
+                            rtmpWriteThread->send(ackSize);
+                        }
+                    }
                 }
                     break;
                 case COMMAND_AMF0:
@@ -426,13 +429,20 @@ void RtmpConnection::reset() {
 
 void RtmpConnection::shutdown() {
     if (NULL != rtmpSocket) {
-        rtmpSocket->closeSocket();
+        rtmpSocket->shutdownSocket();
     }
+    RTMP_LOG_INFO("socket close");
     if (NULL != rtmpReadThread) {
         rtmpReadThread->stop();
     }
+    RTMP_LOG_INFO("read thread stop");
     if (NULL != rtmpWriteThread) {
         rtmpWriteThread->stop();
+    }
+    RTMP_LOG_INFO("write thread stop");
+
+    if (NULL != rtmpSocket) {
+        rtmpSocket->closeSocket();
     }
 
     active = false;
@@ -447,6 +457,7 @@ void RtmpConnection::shutdown() {
     rtmpSocket = NULL;
 
     reset();
+    RTMP_LOG_INFO("reset");
 }
 
 void RtmpConnection::notifyWindowAckRequired(const int numBytesReadThusFar) {
