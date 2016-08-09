@@ -259,10 +259,10 @@ int RtmpPacketReader::readPacketFromSocket(RtmpSocket *socket, RtmpSessionInfo *
             temp_packet = new SetPeerBandwidth(header);
             break;
         case AUDIO:
-            temp_packet = new Audio(header, packetLength);
+            temp_packet = new Audio(header);
             break;
         case VIDEO:
-            temp_packet = new Video(header, packetLength);
+            temp_packet = new Video(header);
             break;
         case COMMAND_AMF0:
             temp_packet = new Command(header);

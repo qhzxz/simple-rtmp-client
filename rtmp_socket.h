@@ -37,8 +37,6 @@ public:
 
     int connect();
 
-
-
     virtual int read_1byte(byte &temp);
 
     virtual int read_bytes(byte *data, int size, size_t *nread);
@@ -50,6 +48,8 @@ public:
     virtual int write_bytes(byte *data, int size, size_t *nwrite);
 
     ~RtmpSocket();
+
+    int shutdownSocket();
 
     int closeSocket();
 };

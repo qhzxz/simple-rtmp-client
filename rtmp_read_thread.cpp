@@ -32,13 +32,11 @@ void RtmpReadThread::start() {
 }
 
 void RtmpReadThread::stop() {
-
     if (active) {
         active = false;
         std::unique_lock<std::mutex> lck(exit_lock);
         cv.wait(lck);
     }
-
 };
 
 
