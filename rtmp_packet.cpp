@@ -85,6 +85,23 @@ void RtmpPacketHeader::setExtendedTimestamp(int extendedTimestamp) {
 
 RtmpPacket::~RtmpPacket() {}
 
+RtmpPacket::RtmpPacket(RtmpPacketHeader header) {
+    this->header = header;
+}
+
+RtmpPacketHeader &RtmpPacket::getHeader() {
+    return header;
+}
+
+SetChunkSize::SetChunkSize(const RtmpPacketHeader &header) : RtmpPacket(header) {
+
+}
+
+SetChunkSize::SetChunkSize() : RtmpPacket(
+        RtmpPacketHeader(SET_CHUNK_SIZE, TYPE_1_RELATIVE_LARGE, RTMP_CONTROL_CHANNEL)) {
+
+}
+
 int SetChunkSize::readBody(RtmpStream *arr) {
     chunkSize = readUnsignedInt32(arr);
 }
@@ -96,6 +113,12 @@ int SetChunkSize::writeBody(RtmpStream *socket) {
 int SetChunkSize::getSize() {
     return 4;
 }
+
+Abort::Abort(const RtmpPacketHeader &header) : RtmpPacket(header) {}
+
+Abort::Abort(int chunkStreamId) : RtmpPacket(
+        RtmpPacketHeader(SET_CHUNK_SIZE, TYPE_1_RELATIVE_LARGE, RTMP_CONTROL_CHANNEL)),
+                                  chunkStreamId(chunkStreamId) {}
 
 int Abort::readBody(RtmpStream *arr) {
     chunkStreamId = readUnsignedInt32(arr);
@@ -111,6 +134,28 @@ int Abort::getSize() {
 
 const int &Abort::getChunkStreamId() const {
     return chunkStreamId;
+}
+
+UserControl::UserControl(const RtmpPacketHeader &header) : RtmpPacket(header) {}
+
+UserControl::UserControl(UserControl &control, ChunkType chunkType) : RtmpPacket(
+        RtmpPacketHeader(USER_CONTROL_MESSAGE, chunkType, RTMP_CONTROL_CHANNEL)), type(PONG_REPLY) {
+    int size = 0;
+    if (control.getType() == SET_BUFFER_LENGTH) {
+        size = 2;
+    } else {
+        size = 1;
+    }
+    this->eventData = new int[size];
+    memcpy(this->eventData, control.eventData, size);
+}
+
+UserControl::UserControl(Type type, ChunkType chunkType) : type(type), RtmpPacket(
+        RtmpPacketHeader(USER_CONTROL_MESSAGE, chunkType, RTMP_CONTROL_CHANNEL)) {
+}
+
+UserControl::UserControl(ChunkType chunkType) : RtmpPacket(
+        RtmpPacketHeader(USER_CONTROL_MESSAGE, chunkType, RTMP_CONTROL_CHANNEL)) {
 }
 
 int UserControl::readBody(RtmpStream *arr) {
@@ -179,16 +224,20 @@ const Type &UserControl::getType() const {
     return type;
 }
 
-UserControl::UserControl(UserControl &control, ChunkType chunkType) : RtmpPacket(
-        RtmpPacketHeader(USER_CONTROL_MESSAGE, chunkType, RTMP_CONTROL_CHANNEL)), type(PONG_REPLY) {
-    int size = 0;
-    if (control.getType() == SET_BUFFER_LENGTH) {
-        size = 2;
-    } else {
-        size = 1;
-    }
-    this->eventData = new int[size];
-    memcpy(this->eventData, control.eventData, size);
+WindowAckSize::WindowAckSize(const RtmpPacketHeader &header) : RtmpPacket(header) {}
+
+WindowAckSize::WindowAckSize(int acknowledgementWindowSize, ChunkType type) : RtmpPacket(
+        RtmpPacketHeader(WINDOW_ACKNOWLEDGEMENT_SIZE, type, RTMP_CONTROL_CHANNEL)), acknowledgementWindowSize(
+        acknowledgementWindowSize) {
+
+}
+
+int WindowAckSize::getAcknowledgementWindowSize() const {
+    return acknowledgementWindowSize;
+}
+
+void WindowAckSize::setAcknowledgementWindowSize(int acknowledgementWindowSize) {
+    WindowAckSize::acknowledgementWindowSize = acknowledgementWindowSize;
 }
 
 int WindowAckSize::readBody(RtmpStream *stream) {
@@ -203,6 +252,30 @@ int WindowAckSize::getSize() {
     return 4;
 }
 
+SetPeerBandwidth::SetPeerBandwidth(const RtmpPacketHeader &header) : RtmpPacket(header) {}
+
+SetPeerBandwidth::SetPeerBandwidth(int acknowledgementWindowSize, ChunkType type, LimitType l_type) : RtmpPacket(
+        RtmpPacketHeader(WINDOW_ACKNOWLEDGEMENT_SIZE, type, RTMP_CONTROL_CHANNEL)), acknowledgementWindowSize(
+        acknowledgementWindowSize), limitType(l_type) {
+
+}
+
+
+int SetPeerBandwidth::getAcknowledgementWindowSize() const {
+    return acknowledgementWindowSize;
+}
+
+void SetPeerBandwidth::setAcknowledgementWindowSize(int acknowledgementWindowSize) {
+    SetPeerBandwidth::acknowledgementWindowSize = acknowledgementWindowSize;
+}
+
+LimitType SetPeerBandwidth::getLimitType() const {
+    return limitType;
+}
+
+void SetPeerBandwidth::setLimitType(LimitType limitType) {
+    SetPeerBandwidth::limitType = limitType;
+}
 
 int SetPeerBandwidth::readBody(RtmpStream *stream) {
     acknowledgementWindowSize = readUnsignedInt32(stream);
@@ -211,11 +284,15 @@ int SetPeerBandwidth::readBody(RtmpStream *stream) {
 
 int SetPeerBandwidth::writeBody(RtmpStream *stream) {
     writeUnsignedInt32(stream, acknowledgementWindowSize);
-    stream->write_1byte((byte)limitType);
+    stream->write_1byte((byte) limitType);
 }
 
 int SetPeerBandwidth::getSize() {
     return 5;
+}
+
+ContentData::ContentData(const RtmpPacketHeader &header) : RtmpPacket(header) {
+    data = NULL;
 }
 
 void ContentData::setData(byte *data, int size) {
@@ -251,6 +328,13 @@ int ContentData::getSize() {
     return size;
 }
 
+Audio::Audio(const RtmpPacketHeader &header) : ContentData(header) {}
+
+Audio::Audio() : ContentData(RtmpPacketHeader(AUDIO, TYPE_0_FULL, RTMP_AUDIO_CHANNEL)) {}
+
+Video::Video(const RtmpPacketHeader &header) : ContentData(header) {}
+
+Video::Video() : ContentData(RtmpPacketHeader(VIDEO, TYPE_0_FULL, RTMP_VIDEO_CHANNEL)) {}
 
 VariableBodyRtmpPacket::VariableBodyRtmpPacket(const RtmpPacketHeader &header) : RtmpPacket(header) {
     items = new std::vector<AmfData *>;
@@ -346,7 +430,7 @@ int Command::readBody(RtmpStream *stream) {
     int length = readUnsignedInt16(stream);
     byte data[length];
     readBytesUntilFull(stream, data, length);
-    commandName = std::string((char *) data,length);
+    commandName = std::string((char *) data, length);
     transactionId = AmfNumber::readNumberFrom(stream);
     int bytesAlreadyRead = (1 + 2 + length) + AmfNumber::SIZE;
     readVariableData(stream, bytesAlreadyRead);

@@ -331,14 +331,10 @@ private:
 
 public:
 
-    RtmpPacket(RtmpPacketHeader header) {
-        this->header = header;
-    };
+    RtmpPacket(RtmpPacketHeader header);
 
 
-    RtmpPacketHeader &getHeader() {
-        return header;
-    }
+    RtmpPacketHeader &getHeader();
 
 public:
     virtual int readBody(RtmpStream *stream) = 0;
@@ -355,13 +351,9 @@ private:
     int chunkSize;
 
 public:
-    SetChunkSize(const RtmpPacketHeader &header) : RtmpPacket(header) {
+    SetChunkSize(const RtmpPacketHeader &header);
 
-    }
-
-    SetChunkSize() : RtmpPacket(RtmpPacketHeader(SET_CHUNK_SIZE, TYPE_1_RELATIVE_LARGE, RTMP_CONTROL_CHANNEL)) {
-
-    }
+    SetChunkSize();
 
     int readBody(RtmpStream *stream);
 
@@ -380,11 +372,9 @@ private:
     int chunkStreamId;
 
 public:
-    Abort(const RtmpPacketHeader &header) : RtmpPacket(header) {}
+    Abort(const RtmpPacketHeader &header);
 
-    Abort(int chunkStreamId) : RtmpPacket(
-            RtmpPacketHeader(SET_CHUNK_SIZE, TYPE_1_RELATIVE_LARGE, RTMP_CONTROL_CHANNEL)),
-                               chunkStreamId(chunkStreamId) {}
+    Abort(int chunkStreamId);
 
     const int &getChunkStreamId() const;
 
@@ -401,17 +391,13 @@ private:
     Type type;
     int *eventData = NULL;
 public:
-    UserControl(const RtmpPacketHeader &header) : RtmpPacket(header) {}
+    UserControl(const RtmpPacketHeader &header);
 
-    UserControl(ChunkType chunkType) : RtmpPacket(
-            RtmpPacketHeader(USER_CONTROL_MESSAGE, chunkType, RTMP_CONTROL_CHANNEL)) {};
+    UserControl(ChunkType chunkType);
 
-    UserControl(Type type, ChunkType chunkType) : type(type), RtmpPacket(
-            RtmpPacketHeader(USER_CONTROL_MESSAGE, chunkType, RTMP_CONTROL_CHANNEL)) {
-    }
+    UserControl(Type type, ChunkType chunkType);
 
     UserControl(UserControl &control, ChunkType chunkType);
-
 
     /** Used to set (a single) event data for most user control message types */
     int setEventData(int eventData);
@@ -436,22 +422,14 @@ private :
     int acknowledgementWindowSize;
 
 public:
-    WindowAckSize(const RtmpPacketHeader &header) : RtmpPacket(header) {}
+    WindowAckSize(const RtmpPacketHeader &header);
 
-    WindowAckSize(int acknowledgementWindowSize, ChunkType type) : RtmpPacket(
-            RtmpPacketHeader(WINDOW_ACKNOWLEDGEMENT_SIZE, type, RTMP_CONTROL_CHANNEL)), acknowledgementWindowSize(
-            acknowledgementWindowSize) {
-
-    }
+    WindowAckSize(int acknowledgementWindowSize, ChunkType type);
 
 
-    int getAcknowledgementWindowSize() const {
-        return acknowledgementWindowSize;
-    }
+    int getAcknowledgementWindowSize() const;
 
-    void setAcknowledgementWindowSize(int acknowledgementWindowSize) {
-        WindowAckSize::acknowledgementWindowSize = acknowledgementWindowSize;
-    }
+    void setAcknowledgementWindowSize(int acknowledgementWindowSize);
 
     int readBody(RtmpStream *stream);
 
@@ -467,29 +445,17 @@ private :
     int acknowledgementWindowSize;
     LimitType limitType;
 public:
-    SetPeerBandwidth(const RtmpPacketHeader &header) : RtmpPacket(header) {}
+    SetPeerBandwidth(const RtmpPacketHeader &header);
 
-    SetPeerBandwidth(int acknowledgementWindowSize, ChunkType type, LimitType l_type) : RtmpPacket(
-            RtmpPacketHeader(WINDOW_ACKNOWLEDGEMENT_SIZE, type, RTMP_CONTROL_CHANNEL)), acknowledgementWindowSize(
-            acknowledgementWindowSize), limitType(l_type) {
+    SetPeerBandwidth(int acknowledgementWindowSize, ChunkType type, LimitType l_type);
 
-    }
+    int getAcknowledgementWindowSize() const;
 
-    int getAcknowledgementWindowSize() const {
-        return acknowledgementWindowSize;
-    }
+    void setAcknowledgementWindowSize(int acknowledgementWindowSize);
 
-    void setAcknowledgementWindowSize(int acknowledgementWindowSize) {
-        SetPeerBandwidth::acknowledgementWindowSize = acknowledgementWindowSize;
-    }
+    LimitType getLimitType() const;
 
-    LimitType getLimitType() const {
-        return limitType;
-    }
-
-    void setLimitType(LimitType limitType) {
-        SetPeerBandwidth::limitType = limitType;
-    }
+    void setLimitType(LimitType limitType);
 
     int readBody(RtmpStream *stream);
 
@@ -505,9 +471,7 @@ protected:
     int size;
 
 public:
-    ContentData(const RtmpPacketHeader &header) : RtmpPacket(header) {
-        data = NULL;
-    }
+    ContentData(const RtmpPacketHeader &header);
 
     void setData(byte *data, int size);
 
@@ -525,17 +489,17 @@ public:
 
 class Audio : public ContentData {
 public:
-    Audio(const RtmpPacketHeader &header, int size) : ContentData(header) {}
+    Audio(const RtmpPacketHeader &header);
 
-    Audio() : ContentData(RtmpPacketHeader(AUDIO, TYPE_0_FULL, RTMP_AUDIO_CHANNEL)) {}
+    Audio();
 };
 
 class Video : public ContentData {
 
 public:
-    Video(const RtmpPacketHeader &header, int size) : ContentData(header) {}
+    Video(const RtmpPacketHeader &header);
 
-    Video() : ContentData(RtmpPacketHeader(VIDEO, TYPE_0_FULL, RTMP_VIDEO_CHANNEL)) {}
+    Video() ;
 };
 
 
