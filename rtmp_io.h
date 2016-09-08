@@ -139,7 +139,7 @@ public :
      * @param numBytes the number of bytes to add
      * @return <code>true</code> if an "acknowledgement" packet should be sent, <code>false</code> otherwise
      */
-    bool addToWindowBytesRead(const int numBytes, const RtmpPacket packet);
+    bool addToWindowBytesRead(const int numBytes);
 
     ~RtmpSessionInfo();
 };

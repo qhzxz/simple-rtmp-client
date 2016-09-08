@@ -125,7 +125,7 @@ RtmpPacketHeader *ChunkStreamInfo::getPrevHeaderTx() {
 }
 
 
-bool RtmpSessionInfo::addToWindowBytesRead(const int numBytes, const RtmpPacket packet) {
+bool RtmpSessionInfo::addToWindowBytesRead(const int numBytes) {
     windowBytesRead += numBytes;
     totalBytesRead += numBytes;
     if (windowBytesRead >= acknowledgementWindowSize) {

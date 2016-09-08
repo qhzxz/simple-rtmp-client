@@ -17,7 +17,7 @@ int AmfArray::getSize() {
     if (size == -1) {
         size = 5; // 1 + 4:1 byte for AmfType ,4 bytes for its length
         if (items != NULL) {
-            for (auto begin = items->begin(); begin != items->end(); ++begin) {
+            for (std::vector<AmfData *>::iterator begin = items->begin(); begin != items->end(); ++begin) {
                 AmfData *data = *begin;
                 size += data->getSize();
             }
@@ -232,7 +232,7 @@ void AmfObject::writeTo(RtmpStream *out) {
     // Begin the object
     out->write_1byte(AMF0_OBJECT);
     // Write key/value pairs in this object
-    for (auto mapIterator = properties->begin(); mapIterator != properties->end(); ++mapIterator) {
+    for (PropertyMap::iterator mapIterator = properties->begin(); mapIterator != properties->end(); ++mapIterator) {
         // The key must be a AMF0_STRING type, and thus the "type-definition" byte is implied (not included in message)
         std::string key = (*mapIterator).first;
         AmfData *data = (*mapIterator).second;
@@ -287,7 +287,7 @@ void AmfObject::readFrom(RtmpStream *in) {
 int AmfObject::getSize() {
     if (size == -1) {
         size = 1; // object marker
-        for (auto mapIterator = properties->begin(); mapIterator != properties->end(); ++mapIterator) {
+        for (PropertyMap::iterator mapIterator = properties->begin(); mapIterator != properties->end(); ++mapIterator) {
             // The key must be a AMF0_STRING type, and thus the "type-definition" byte is implied (not included in message)
             std::string key = (*mapIterator).first;
             size += (2 + key.length());// 2 byte for key length
@@ -300,7 +300,7 @@ int AmfObject::getSize() {
 }
 
 AmfObject::~AmfObject() {
-    for (auto mapIterator = properties->begin(); mapIterator != properties->end(); ++mapIterator) {
+    for (PropertyMap::iterator mapIterator = properties->begin(); mapIterator != properties->end(); ++mapIterator) {
         // The key must be a AMF0_STRING type, and thus the "type-definition" byte is implied (not included in message)
         AmfData *data = (*mapIterator).second;
         delete data;

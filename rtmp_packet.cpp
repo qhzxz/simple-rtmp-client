@@ -371,7 +371,8 @@ void VariableBodyRtmpPacket::readVariableData(RtmpStream *in, int bytesAlreadyRe
 
 void VariableBodyRtmpPacket::writeVariableData(RtmpStream *in) {
     if (!items->empty()) {
-        for (auto begin = items->begin(); begin != items->end(); ++begin) {
+
+        for (std::vector<AmfData *>::iterator begin = items->begin(); begin != items->end(); ++begin) {
             AmfData *data = (*begin);
             data->writeTo(in);
         }

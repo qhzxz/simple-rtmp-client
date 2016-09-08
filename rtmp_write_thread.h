@@ -6,6 +6,7 @@
 #define SOCKET_RTMP_WRITE_THREAD_H
 
 #include <thread>
+#include <mutex>
 #include <deque>
 #include "rtmp_packet_writer.h"
 
