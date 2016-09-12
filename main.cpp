@@ -18,5 +18,8 @@ int main() {
     if (ret!=RESULT_SUCCESS) {
         RTMP_LOG_INFO("publish fail");
     }
+    connection.closeStream();
+    connection.shutdown();
+
     return 0;
 }

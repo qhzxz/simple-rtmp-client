@@ -9,6 +9,7 @@
 #include <mutex>
 #include <deque>
 #include "rtmp_packet_writer.h"
+#include "rtmp_connection.h"
 
 class RtmpWriteThread {
 private:
@@ -19,10 +20,11 @@ private:
     RtmpPacketWriter *packetWriter = NULL;
     RtmpSocket *socket = NULL;
     RtmpSessionInfo *sessionInfo = NULL;
+    RtmpConnection *connection = NULL;
 
     std::thread *p_thread = NULL;
     std::mutex exit_lock;
-    std::mutex vector_lock;
+    std::mutex deque_lock;
     std::condition_variable cv;
 
 
@@ -36,7 +38,7 @@ private:
 
 public:
 
-    RtmpWriteThread(bool isJoin, RtmpSessionInfo *sessionInfo, RtmpSocket *socket);
+    RtmpWriteThread(bool isJoin, RtmpSessionInfo *sessionInfo, RtmpSocket *socket, RtmpConnection *connection);
 
     void start();
 

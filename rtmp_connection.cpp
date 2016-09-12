@@ -10,6 +10,7 @@
 
 
 RtmpConnection::RtmpConnection() {
+    videoFrameCacheNumber = 0;
 }
 
 int RtmpConnection::handShake() {
@@ -47,7 +48,7 @@ int RtmpConnection::connect(const std::string &url) {
     active = true;
     sessionInfo = new RtmpSessionInfo();
     rtmpReadThread = new RtmpReadThread(false, sessionInfo, rtmpSocket);
-    rtmpWriteThread = new RtmpWriteThread(false, sessionInfo, rtmpSocket);
+    rtmpWriteThread = new RtmpWriteThread(false, sessionInfo, rtmpSocket, this);
     rtmpReadThread->setHandler(this);
     rtmpReadThread->start();
     rtmpWriteThread->start();
@@ -423,6 +424,7 @@ void RtmpConnection::reset() {
     transactionIdCounter = 0;
     delete sessionInfo;
     sessionInfo = NULL;
+    videoFrameCacheNumber = 0;
     clearPacket();
 }
 
@@ -477,4 +479,9 @@ void RtmpConnection::publishVideoData(int size, int32_t time_stamp, byte *data) 
     video->getHeader().setMessageStreamId(currentStreamId);
     video->setData(data, size);
     rtmpWriteThread->send(video);
+    videoFrameCacheNumber++;
+}
+
+std::atomic_int &RtmpConnection::getVideoFrameCacheNumber() {
+    return videoFrameCacheNumber;
 }

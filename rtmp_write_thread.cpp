@@ -10,10 +10,11 @@ RtmpWriteThread &RtmpWriteThread::operator=(const RtmpWriteThread &writeThread) 
 
 RtmpWriteThread::RtmpWriteThread(const RtmpWriteThread &writeThread) {}
 
-RtmpWriteThread::RtmpWriteThread(bool isJoin, RtmpSessionInfo *sessionInfo, RtmpSocket *socket) : isJoin(isJoin),
-                                                                                                  socket(socket),
-                                                                                                  sessionInfo(
-                                                                                                          sessionInfo) {
+RtmpWriteThread::RtmpWriteThread(bool isJoin, RtmpSessionInfo *sessionInfo, RtmpSocket *socket,
+                                 RtmpConnection *connection) : isJoin(isJoin),
+                                                               socket(socket),
+                                                               sessionInfo(sessionInfo),
+                                                               connection(connection) {
     packetWriter = new RtmpPacketWriter();
 }
 
@@ -44,10 +45,10 @@ void RtmpWriteThread::stop() {
 void RtmpWriteThread::writePacket() {
     while (active) {
         while (!packet_deque.empty()) {
-            vector_lock.lock();
+            deque_lock.lock();
             RtmpPacket *packet = packet_deque.front();
             packet_deque.pop_front();
-            vector_lock.unlock();
+            deque_lock.unlock();
             int ret = packetWriter->writePacket(packet, socket, sessionInfo);
             if (ret != RESULT_SUCCESS) {
                 RTMP_LOG_INFO("write packet fail ret:{0:d}", ret);
@@ -59,6 +60,11 @@ void RtmpWriteThread::writePacket() {
                 Command *command = dynamic_cast<Command *>(packet);
                 if (NULL != command) {
                     sessionInfo->addInvokedCommand(command->getTransactionId(), command->getCommandName());
+                }
+
+                Video *video = dynamic_cast<Video *>(packet);
+                if (NULL != video) {
+                    connection->getVideoFrameCacheNumber()--;
                 }
             }
             delete packet;
@@ -82,7 +88,7 @@ RtmpWriteThread::~RtmpWriteThread() {
 }
 
 void RtmpWriteThread::send(RtmpPacket *packet) {
-    std::unique_lock<std::mutex> lck(vector_lock);
+    std::unique_lock<std::mutex> lck(deque_lock);
     packet_deque.push_back(packet);
 }
 

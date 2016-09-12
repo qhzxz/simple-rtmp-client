@@ -8,6 +8,7 @@
 
 #include <regex>
 #include <string>
+#include <atomic>
 #include "rtmp_socket.h"
 #include "rtmp_io.h"
 #include "rtmp_write_thread.h"
@@ -38,6 +39,8 @@ private:
     int transactionIdCounter = 0;
     std::mutex dequeLock;
     std::deque<RtmpPacket *> rxPacketDeque;
+    std::atomic_int videoFrameCacheNumber;
+
 
     void reset();
 
@@ -79,6 +82,8 @@ public:
     void handleRxPacketLoop();
 
     void shutdown();
+
+    std::atomic_int &getVideoFrameCacheNumber();
 
     void notifyWindowAckRequired(const int numBytesReadThusFar);
 };
