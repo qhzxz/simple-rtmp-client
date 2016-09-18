@@ -11,6 +11,8 @@
 #include "rtmp_packet_writer.h"
 #include "rtmp_connection.h"
 
+class RtmpConnection;
+
 class RtmpWriteThread {
 private:
     bool isJoin = false;

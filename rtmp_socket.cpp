@@ -13,7 +13,7 @@ RtmpSocket::RtmpSocket(std::string ip, int port) {
     s_in->sin_family = AF_INET;
     s_in->sin_port = htons(port);
     s_in->sin_addr.s_addr = inet_addr(ip.c_str());
-    s_fd = socket(AF_INET, SOCK_STREAM, 0);
+    s_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
 }
 
 
@@ -121,7 +121,7 @@ int RtmpSocket::read_full_bytes(byte *data, int size, size_t *nread) {
 
 int RtmpSocket::shutdownSocket() {
     int ret = RESULT_SUCCESS;
-    int temp = shutdown(s_fd,SHUT_RDWR);
+    int temp = shutdown(s_fd, SHUT_RDWR);
     if (temp < 0) {
         return RESULT_SOCKET_CLOSE_FAIL;
     }

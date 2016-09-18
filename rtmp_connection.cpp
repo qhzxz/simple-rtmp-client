@@ -14,7 +14,7 @@ RtmpConnection::RtmpConnection() {
 }
 
 int RtmpConnection::handShake() {
-    int ret = RESULT_SUCCESS;
+    int ret;
     if (NULL == rtmpSocket) {
         return RESULT_NULL_POINTER;
     }
@@ -24,7 +24,7 @@ int RtmpConnection::handShake() {
 }
 
 int RtmpConnection::connect(const std::string &url) {
-    int ret = RESULT_SUCCESS;
+    int ret;
     std::regex urlPattern("^rtmp://([^/:]+)(:(\\d+))*/([^/]+)(/(.*))*$");
     std::match_results<std::string::const_iterator> results;
     if ((ret = checkUrlPattern(urlPattern, results, url)) != RESULT_SUCCESS) {
@@ -126,6 +126,32 @@ void RtmpConnection::handleRxPacket(RtmpPacket *packet) {
     rxPacketDeque.push_back(packet);
 }
 
+
+int RtmpConnection::play() {
+    if (connecting) {
+        std::unique_lock<std::mutex> lck(connectLock);
+        cv_connect.wait_for(lck, std::chrono::milliseconds(5000));
+    }
+    int ret = RESULT_SUCCESS;
+    if (!fullyConnected) {
+        return RESULT_NOT_CONNECTED_TO_SERVER;
+    }
+
+    if (currentStreamId == -1) {
+        return RESULT_NO_CURRENT_STREAM_OBJECT_EXIST;
+    }
+    Command *play = new Command("play", 0);
+    play->getHeader().setChunkStreamId(RTMP_STREAM_CHANNEL);
+    play->getHeader().setMessageStreamId(currentStreamId);
+    play->addAmfData(new AmfNull);
+    play->addStringData(streamName);//streamName
+    play->addDoubleData(-2);//start
+    play->addDoubleData(-1);//duration
+    play->addBoolData(true);//reset
+    rtmpWriteThread->send(play);
+    return ret;
+}
+
 void RtmpConnection::handleRxPacketLoop() {
 
     while (active) {
@@ -160,6 +186,12 @@ void RtmpConnection::handleRxPacketLoop() {
                                 break;
                             case STREAM_EOF:
                                 RTMP_LOG_INFO("handleRxPacketLoop(): Stream EOF reached, closing RTMP writer...");
+                                break;
+                            case STREAM_BEGIN:
+                                RTMP_LOG_INFO("handleRxPacketLoop(): Stream Begin.");
+                                break;
+                            case STREAM_IS_RECORDED:
+                                RTMP_LOG_INFO("handleRxPacketLoop(): Stream is Record.");
                                 break;
                         }
 
@@ -201,6 +233,12 @@ void RtmpConnection::handleRxPacketLoop() {
                         shutdown();
                     }
                     break;
+                case VIDEO:
+
+                    break;
+                case AUDIO:
+
+                    break;
                 default:
                     RTMP_LOG_INFO("handleRxPacketLoop(): Not handling unimplemented/unknown packet of type: {0:x}",
                                   packet->getHeader().getMessageType());
@@ -224,21 +262,23 @@ int RtmpConnection::handleRxInvoke(RtmpPacket *packet) {
             RTMP_LOG_INFO("handleRxInvoke: Got result for invoked method: {0}", method);
             if ("connect" == method) {
                 // Capture server ip/pid/id information if any
-//                String serverInfo = onSrsServerInfo(invoke);
-//                mHandler.onRtmpConnected("connected" + serverInfo);
+//              String serverInfo = onSrsServerInfo(invoke);
+//       mHandler.onRtmpConnected("connected" + serverInfo);
                 // We can now send createStream commands
                 connecting = false;
                 fullyConnected = true;
                 std::unique_lock<std::mutex> lck(connectLock);
-                connect_cv.notify_all();
+                cv_connect.notify_all();
             } else if ("createStream" == method) {
                 // Get stream id
                 std::vector<AmfData *> *pVector = invoke->getItems();
                 AmfNumber *number = dynamic_cast<AmfNumber *>(pVector->at(1));
                 currentStreamId = (int) (number->getValue());
-                RTMP_LOG_INFO("handleRxInvoke(): Stream ID to publish: {0:d}", currentStreamId);
+                RTMP_LOG_INFO("handleRxInvoke(): Stream ID : {0:d}", currentStreamId);
                 if (!streamName.empty() && !publishType.empty()) {
                     ret = fmlePublish();
+                } else {
+
                 }
             } else if ("releaseStream" == method) {
                 RTMP_LOG_INFO("handleRxInvoke(): 'releaseStream'");
@@ -266,13 +306,13 @@ int RtmpConnection::handleRxInvoke(RtmpPacket *packet) {
                 ret = onMetaData();
                 // We can now publish AV data
                 publishPermitted = true;
-                std::unique_lock<std::mutex> lck(publishLock);
-                publish_cv.notify_all();
+                std::unique_lock<std::mutex> lck(createStreamLock);
+                cv_stream.notify_all();
 
             } else if ("NetStream.Publish.BadName" == code) {
-                std::unique_lock<std::mutex> lck(publishLock);
-                publish_cv.notify_all();
-            }
+                std::unique_lock<std::mutex> lck(createStreamLock);
+                cv_stream.notify_all();
+            } else if ("") {}
         } else {
             RTMP_LOG_INFO("handleRxInvoke(): Unknown/unhandled server invoke ");
         }
@@ -362,8 +402,8 @@ int RtmpConnection::createStream() {
                                         can_resue_chuck_header ? TYPE_1_RELATIVE_LARGE : TYPE_0_FULL);
     createStream->addAmfData(new AmfNull());  // command object: null for "createStream"
     rtmpWriteThread->send(createStream);
-    std::unique_lock<std::mutex> lck(publishLock);
-    publish_cv.wait_for(lck, std::chrono::milliseconds(500));
+    std::unique_lock<std::mutex> lck(createStreamLock);
+    cv_stream.wait_for(lck, std::chrono::milliseconds(500));
     return ret;
 }
 
@@ -392,7 +432,7 @@ int RtmpConnection::closeStream() {
 int RtmpConnection::publish(std::string type) {
     if (connecting) {
         std::unique_lock<std::mutex> lck(connectLock);
-        connect_cv.wait_for(lck, std::chrono::milliseconds(5000));
+        cv_connect.wait_for(lck, std::chrono::milliseconds(5000));
     }
     publishType = type;
     int ret = createStream();
@@ -422,9 +462,9 @@ void RtmpConnection::reset() {
     publishType = "";
     currentStreamId = -1;
     transactionIdCounter = 0;
+    videoFrameCacheNumber = 0;
     delete sessionInfo;
     sessionInfo = NULL;
-    videoFrameCacheNumber = 0;
     clearPacket();
 }
 

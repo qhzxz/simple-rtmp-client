@@ -15,6 +15,8 @@
 #include "rtmp_read_thread.h"
 #include "rtmp_packet_handler.h"
 
+class RtmpWriteThread;
+
 class RtmpConnection : public RtmpRxPacketHandler {
 private:
     std::string appName;
@@ -32,9 +34,9 @@ private:
     volatile bool fullyConnected = false;
     volatile bool publishPermitted = false;
     std::mutex connectLock;
-    std::condition_variable connect_cv;
-    std::mutex publishLock;
-    std::condition_variable publish_cv;
+    std::condition_variable cv_connect;
+    std::mutex createStreamLock;
+    std::condition_variable cv_stream;
     int currentStreamId = -1;
     int transactionIdCounter = 0;
     std::mutex dequeLock;
@@ -86,6 +88,8 @@ public:
     std::atomic_int &getVideoFrameCacheNumber();
 
     void notifyWindowAckRequired(const int numBytesReadThusFar);
+
+    int play();
 };
 
 
